@@ -1,0 +1,38 @@
+[
+  {
+    "id": "CF-1791647456277",
+    "title": "Civic Issue",
+    "category": "Streetlights",
+    "description": "there is a street light breakdown noticed in nehru park",
+    "location": "in nehru park",
+    "status": "In Progress",
+    "createdAt": "2026-10-10T15:50:56.277Z"
+  },
+  {
+    "id": "CF-1791647557815",
+    "title": "Civic Issue",
+    "category": "Garbage & Waste",
+    "description": "there was a garbage noticed in front of KFC restro.",
+    "location": "nearby KFC",
+    "status": "Resolved",
+    "createdAt": "2026-10-10T15:52:37.815Z"
+  },
+  {
+    "id": "CF-1791650839931",
+    "title": "Civic Issue",
+    "category": "Roads & Potholes",
+    "description": "large potholes noticed nera main market",
+    "location": "main market meena",
+    "status": "In Progress",
+    "createdAt": "2026-10-10T16:47:19.931Z"
+  },
+  {
+    "id": "CF-1794323937011",
+    "title": "Civic Issue",
+    "category": "Streetlights",
+    "description": "There is a broken streetlight noticed in Townpark.",
+    "location": "town park",
+    "status": "In Progress",
+    "createdAt": "2026-11-10T15:18:57.011Z"
+  }
+]

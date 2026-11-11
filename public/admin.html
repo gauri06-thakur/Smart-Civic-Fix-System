@@ -1,0 +1,312 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Civic Fix | Admin Dashboard</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f6fa;
+      color: #243047;
+    }
+
+    header {
+      background: #173b
+      color: white;
+      padding: 22px 6%;
+    }
+
+    header h1 { margin: 0 0 6px; }
+    header p { margin: 0; }
+    #logoutBtn {
+  float: right;
+  background: #dc3545;
+  margin-top: -35px;
+}
+
+    main {
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 0 18px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat, .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px #152b4510;
+    }
+
+    .stat h3 { margin: 0 0 10px; font-size: 15px; }
+    .stat strong { font-size: 28px; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    input, select {
+      padding: 11px;
+      border: 1px solid #ccd5e0;
+      border-radius: 7px;
+      background: white;
+    }
+
+    #search { flex: 1; min-width: 180px; }
+
+    .complaint {
+      border: 1px solid #e0e6ee;
+      padding: 16px;
+      border-radius: 9px;
+      margin-top: 12px;
+    }
+
+    .complaint h3 { margin: 0 0 10px; }
+    .complaint p { margin: 7px 0; overflow-wrap: anywhere; }
+    .complaint select { margin-top: 10px; }
+
+    button {
+      padding: 11px 15px;
+      border: 0;
+      border-radius: 7px;
+      background: #1769aa;
+      color: white;
+      cursor: pointer;
+    }
+
+    .message { margin: 12px 0; }
+    .muted { color: #65738a; }
+  </style>
+</head>
+<body>
+  <header>
+  <h1>Civic Fix</h1>
+  <p>Admin Dashboard — Manage Civic Complaints</p>
+  <button id="logoutBtn">Logout</button>
+</header>
+
+  <main>
+    <section class="stats">
+      <div class="stat">
+        <h3>Total Complaints</h3>
+        <strong id="total">0</strong>
+      </div>
+      <div class="stat">
+        <h3>Pending</h3>
+        <strong id="pending">0</strong>
+      </div>
+      <div class="stat">
+        <h3>In Progress</h3>
+        <strong id="progress">0</strong>
+      </div>
+      <div class="stat">
+        <h3>Resolved</h3>
+        <strong id="resolved">0</strong>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Manage Complaints</h2>
+
+      <div class="toolbar">
+        <input id="search" placeholder="Search by ID, category or location">
+        <select id="filter">
+          <option value="">All Statuses</option>
+          <option>Pending</option>
+          <option>In Progress</option>
+          <option>Resolved</option>
+        </select>
+        <button id="refresh">Refresh</button>
+      </div>
+
+      <p id="message" class="message muted">Loading complaints...</p>
+      <div id="complaintList"></div>
+    </section>
+  </main>
+
+  <script>
+    const API = "http://127.0.0.1:3000/api/complaints";
+    const list = document.getElementById("complaintList");
+    const message = document.getElementById("message");
+
+    let allComplaints = [];
+
+async function checkAdmin() {
+  try {
+    const response = await fetch("http://127.0.0.1:3000/api/admin/check", {
+      credentials: "include"
+    });
+
+    const result = await response.json();
+
+    if (!result.authenticated) {
+      window.location.href = "admin-login.html";
+      return;
+    }
+
+    await loadComplaints();
+  } catch (error) {
+    message.textContent =
+      "Unable to verify login. Please check that the backend is running.";
+  }
+}
+
+
+    async function loadComplaints() {
+      message.textContent = "Loading complaints...";
+
+      try {
+        const response = await fetch(API, {
+  credentials: "include"
+});
+        if (!response.ok) throw new Error("Could not load complaints");
+
+        allComplaints = await response.json();
+        updateStats();
+        renderComplaints();
+        message.textContent = allComplaints.length
+          ? ""
+          : "No complaints submitted yet.";
+      } catch (error) {
+        message.textContent =
+          "Unable to connect. Please check that the backend is running.";
+      }
+    }
+
+    function updateStats() {
+      document.getElementById("total").textContent =
+        allComplaints.length;
+
+      document.getElementById("pending").textContent =
+        allComplaints.filter(c => c.status === "Pending").length;
+
+      document.getElementById("progress").textContent =
+        allComplaints.filter(c => c.status === "In Progress").length;
+
+      document.getElementById("resolved").textContent =
+        allComplaints.filter(c => c.status === "Resolved").length;
+    }
+
+    function renderComplaints() {
+      const term = document.getElementById("search").value.toLowerCase();
+      const status = document.getElementById("filter").value;
+
+      const filtered = allComplaints.filter(c => {
+        const matchesSearch = [
+          c.id, c.category, c.location, c.title, c.description
+        ].some(value => String(value || "").toLowerCase().includes(term));
+
+        return matchesSearch && (!status || c.status === status);
+      });
+
+      list.replaceChildren();
+
+      if (!filtered.length) {
+        const empty = document.createElement("p");
+        empty.textContent = "No matching complaints found.";
+        list.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach(c => {
+        const card = document.createElement("article");
+        card.className = "complaint";
+
+        const title = document.createElement("h3");
+        title.textContent = c.title || c.category || "Civic Issue";
+
+        const details = document.createElement("p");
+        details.textContent =
+          `ID: ${c.id} | Category: ${c.category} | Location: ${c.location}`;
+
+        const description = document.createElement("p");
+        description.textContent = `Description: ${c.description}`;
+
+        const currentStatus = document.createElement("p");
+        currentStatus.textContent = `Current status: ${c.status}`;
+
+        const select = document.createElement("select");
+        ["Pending", "In Progress", "Resolved"].forEach(statusName => {
+          const option = document.createElement("option");
+          option.value = statusName;
+          option.textContent = statusName;
+          option.selected = statusName === c.status;
+          select.appendChild(option);
+        });
+
+        const button = document.createElement("button");
+        button.textContent = "Update Status";
+        button.style.marginLeft = "8px";
+
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          try {
+            const response = await fetch(
+              `${API}/${encodeURIComponent(c.id)}/status`,
+              {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: select.value })
+              }
+            );
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+
+            message.textContent = "Complaint status updated successfully!";
+            await loadComplaints();
+          } catch (error) {
+            message.textContent = error.message || "Status update failed.";
+          } finally {
+            button.disabled = false;
+          }
+        });
+
+        card.append(title, details, description, currentStatus, select, button);
+        list.appendChild(card);
+      });
+    }
+
+    document.getElementById("search").addEventListener("input", renderComplaints);
+    document.getElementById("filter").addEventListener("change", renderComplaints);
+    document.getElementById("refresh").addEventListener("click", loadComplaints);
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:3000/api/admin/logout",
+      {
+        method: "POST",
+        credentials: "include"
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Logout failed");
+    }
+
+    window.location.href = "admin-login.html";
+
+  } catch (error) {
+    message.textContent = "Unable to logout. Please try again.";
+  }
+});
+
+    checkAdmin();
+  </script>
+</body>
+</html>
